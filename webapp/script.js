@@ -50,10 +50,7 @@ async function sendTap() {
     }
     window.lastTapTime = now;
 
-    // Анимация
-    const tapButton = document.getElementById('tapButton');
-    tapButton.classList.add('tapped');
-    setTimeout(() => tapButton.classList.remove('tapped'), 600);
+    // Анимация уменьшения уже в CSS через :active
 
     // Вибрация
     if (tg.HapticFeedback) {
