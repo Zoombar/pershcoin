@@ -14,10 +14,11 @@ let state = {
 };
 
 // API базовый URL
-// В продакшене замените на URL вашего сервера
+// Для локальной разработки используйте ngrok: ngrok http 8080
+// Для продакшена укажите URL вашего сервера
 const API_BASE = window.location.hostname === 'localhost' 
     ? 'http://localhost:8080' 
-    : 'https://your-server.com'; // Замените на ваш сервер
+    : 'https://your-server.com'; // TODO: Замените на URL вашего API сервера (ngrok или продакшен)
 
 // Получение данных пользователя
 async function fetchUserData() {
@@ -238,8 +239,58 @@ function copyReferralCode() {
     }
 }
 
+// Загрузка фото пользователя в монету
+function loadUserPhoto() {
+    const coinFace = document.getElementById('coinFace');
+    const user = tg.initDataUnsafe?.user;
+    
+    if (user && user.photo_url) {
+        // Используем фото из Telegram
+        const img = document.createElement('img');
+        img.src = user.photo_url;
+        img.alt = 'User photo';
+        img.onerror = () => {
+            // Если фото не загрузилось, показываем инициалы
+            showUserInitials(user);
+        };
+        coinFace.appendChild(img);
+    } else if (user) {
+        // Если фото нет, показываем инициалы
+        showUserInitials(user);
+    } else {
+        // Заглушка, если данных нет
+        coinFace.innerHTML = '<div style="font-size: 48px;">🪙</div>';
+    }
+}
+
+// Показать инициалы пользователя
+function showUserInitials(user) {
+    const coinFace = document.getElementById('coinFace');
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    const initials = (firstName.charAt(0) + (lastName ? lastName.charAt(0) : '')).toUpperCase() || '?';
+    
+    coinFace.innerHTML = `
+        <div style="
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: #d4af37;
+            background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        ">${initials}</div>
+    `;
+}
+
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
+    // Загружаем фото пользователя в монету
+    loadUserPhoto();
+    
     // Кнопка тапа
     const tapButton = document.getElementById('tapButton');
     tapButton.addEventListener('click', sendTap);
