@@ -121,10 +121,13 @@ body {
     height: 250px;
     object-fit: cover;
     border-radius: 50%;
-    display: block;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     user-select: none;
     -webkit-user-select: none;
     pointer-events: none;
+    background: transparent;
 }
 
 .tap-hint {

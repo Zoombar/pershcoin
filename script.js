@@ -18,10 +18,17 @@ let state = {
 // ╨Ф╨╗╤П ╨┐╤А╨╛╨┤╨░╨║╤И╨╡╨╜╨░ ╤Г╨║╨░╨╢╨╕╤В╨╡ URL ╨▓╨░╤И╨╡╨│╨╛ ╤Б╨╡╤А╨▓╨╡╤А╨░
 const API_BASE = window.location.hostname === 'localhost' 
     ? 'http://localhost:8080' 
-    : 'https://your-server.com'; // TODO: ╨Ч╨░╨╝╨╡╨╜╨╕╤В╨╡ ╨╜╨░ URL ╨▓╨░╤И╨╡╨│╨╛ API ╤Б╨╡╤А╨▓╨╡╤А╨░ (ngrok ╨╕╨╗╨╕ ╨┐╤А╨╛╨┤╨░╨║╤И╨╡╨╜)
+    : null; // API ╤Б╨╡╤А╨▓╨╡╤А ╨╜╨╡ ╨╜╨░╤Б╤В╤А╨╛╨╡╨╜ - ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡ ╨▒╤Г╨┤╨╡╤В ╤А╨░╨▒╨╛╤В╨░╤В╤М ╨▓ ╤А╨╡╨╢╨╕╨╝╨╡ ╨┤╨╡╨╝╨╛
 
 // ╨Я╨╛╨╗╤Г╤З╨╡╨╜╨╕╨╡ ╨┤╨░╨╜╨╜╤Л╤Е ╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╤В╨╡╨╗╤П
 async function fetchUserData() {
+    if (!API_BASE) {
+        // ╨Ф╨╡╨╝╨╛ ╤А╨╡╨╢╨╕╨╝ - ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╨╝ ╨╖╨╜╨░╤З╨╡╨╜╨╕╤П ╨┐╨╛ ╤Г╨╝╨╛╨╗╤З╨░╨╜╨╕╤О
+        state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        updateUI();
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE}/api/user?initData=${encodeURIComponent(state.initData)}`);
         const data = await response.json();
@@ -36,6 +43,9 @@ async function fetchUserData() {
         }
     } catch (error) {
         console.error('Error fetching user data:', error);
+        // ╨Ф╨╡╨╝╨╛ ╤А╨╡╨╢╨╕╨╝ ╨┐╤А╨╕ ╨╛╤И╨╕╨▒╨║╨╡
+        state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        updateUI();
     }
 }
 
@@ -55,6 +65,15 @@ async function sendTap() {
     // ╨Т╨╕╨▒╤А╨░╤Ж╨╕╤П
     if (tg.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
+    }
+
+    // ╨Ф╨╡╨╝╨╛ ╤А╨╡╨╢╨╕╨╝ - ╤А╨░╨▒╨╛╤В╨░╨╡╨╝ ╨╗╨╛╨║╨░╨╗╤М╨╜╨╛
+    if (!API_BASE) {
+        state.coins += 1;
+        state.taps += 1;
+        updateUI();
+        showCoinAnimation();
+        return;
     }
 
     try {
@@ -83,7 +102,11 @@ async function sendTap() {
         }
     } catch (error) {
         console.error('Error sending tap:', error);
-        tg.showAlert('╨Ю╤И╨╕╨▒╨║╨░ ╨┐╤А╨╕ ╨╛╤В╨┐╤А╨░╨▓╨║╨╡ ╤В╨░╨┐╨░');
+        // ╨Ф╨╡╨╝╨╛ ╤А╨╡╨╢╨╕╨╝ ╨┐╤А╨╕ ╨╛╤И╨╕╨▒╨║╨╡
+        state.coins += 1;
+        state.taps += 1;
+        updateUI();
+        showCoinAnimation();
     }
 }
 
@@ -183,12 +206,18 @@ async function loadReferrals() {
 
 // ╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╨╗╨╕╨┤╨╡╤А╨▒╨╛╤А╨┤╨░
 async function loadLeaderboard(type = 'coins') {
+    const list = document.getElementById('leaderboardList');
+    
+    if (!API_BASE) {
+        list.innerHTML = '<div class="loading">╨Ф╨╡╨╝╨╛ ╤А╨╡╨╢╨╕╨╝: API ╤Б╨╡╤А╨▓╨╡╤А ╨╜╨╡ ╨╜╨░╤Б╤В╤А╨╛╨╡╨╜</div>';
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE}/api/leaderboard?initData=${encodeURIComponent(state.initData)}`);
         const data = await response.json();
         
         if (data.success) {
-            const list = document.getElementById('leaderboardList');
             list.innerHTML = '';
             
             const leaderboard = type === 'coins' ? data.by_coins : data.by_taps;
@@ -210,6 +239,7 @@ async function loadLeaderboard(type = 'coins') {
         }
     } catch (error) {
         console.error('Error loading leaderboard:', error);
+        list.innerHTML = '<div class="loading">╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╨╗╨╕╨┤╨╡╤А╨▒╨╛╤А╨┤╨░</div>';
     }
 }
 
