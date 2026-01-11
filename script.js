@@ -250,9 +250,9 @@ function loadCoinImage() {
         coinImage.onerror = () => {
             console.error('Failed to load coin image');
             coinImage.style.display = 'none';
-            const coinFace = document.getElementById('coinFace');
-            if (coinFace) {
-                coinFace.innerHTML = '<div style="font-size: 48px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">ЁЯкЩ</div>';
+            const tapButton = document.getElementById('tapButton');
+            if (tapButton) {
+                tapButton.innerHTML = '<div style="font-size: 48px; display: flex; align-items: center; justify-content: center; width: 250px; height: 250px; border-radius: 50%;">ЁЯкЩ</div>';
             }
         };
         
