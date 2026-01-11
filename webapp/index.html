@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pershcoin - Tap to Earn</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        @charset "UTF-8";
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="balance-container">
+                <div class="balance-label">Баланс</div>
+                <div class="balance-value" id="balance">0</div>
+                <div class="balance-unit">монет</div>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Тапов:</span>
+                    <span class="stat-value" id="taps">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main tap area -->
+        <main class="main">
+            <div class="tap-container">
+                <button class="tap-button" id="tapButton">
+                    <img src="persh.jpg" alt="Coin" id="coinImage" class="coin-image">
+                </button>
+                <div class="tap-hint">Тапай, чтобы заработать монеты!</div>
+            </div>
+        </main>
+
+        <!-- Action buttons -->
+        <div class="actions">
+            <button class="action-btn" id="referralsBtn">
+                👥 Рефералы
+            </button>
+            <button class="action-btn" id="leaderboardBtn">
+                🏆 Лидерборд
+            </button>
+        </div>
+    </div>
+
+    <!-- Referrals Modal -->
+    <div class="modal" id="referralsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👥 Реферальная система</h2>
+                <button class="modal-close" id="closeReferrals">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="referral-info">
+                    <div class="referral-code-container">
+                        <label>Твой реферальный код:</label>
+                        <div class="referral-code" id="referralCode">PERSH000000</div>
+                        <button class="copy-btn" id="copyReferralCode">📋 Копировать</button>
+                    </div>
+                    <div class="referral-stats">
+                        <div class="stat-row">
+                            <span>Приглашено друзей:</span>
+                            <strong id="referralsCount">0</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>Заработано с рефералов:</span>
+                            <strong id="referralsEarned">0</strong> монет
+                        </div>
+                    </div>
+                    <div class="referral-list" id="referralsList">
+                        <!-- Список рефералов будет здесь -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div class="modal" id="leaderboardModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏆 Лидерборд</h2>
+                <button class="modal-close" id="closeLeaderboard">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="leaderboard-tabs">
+                    <button class="tab-btn active" data-tab="coins">💰 По монетам</button>
+                    <button class="tab-btn" data-tab="taps">👆 По тапам</button>
+                </div>
+                <div class="leaderboard-content">
+                    <div class="leaderboard-list" id="leaderboardList">
+                        <!-- Лидерборд будет здесь -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
