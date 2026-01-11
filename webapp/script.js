@@ -243,12 +243,24 @@ function copyReferralCode() {
 function loadCoinImage() {
     const coinImage = document.getElementById('coinImage');
     if (coinImage) {
+        // Проверяем, загрузилось ли изображение
+        if (coinImage.complete && coinImage.naturalHeight !== 0) {
+            // Изображение уже загружено
+            return;
+        }
+        
         // Если изображение не загрузилось, показываем заглушку
         coinImage.onerror = () => {
+            console.error('Failed to load coin image');
             coinImage.style.display = 'none';
             const coinFace = document.getElementById('coinFace');
-            coinFace.innerHTML = '<div style="font-size: 48px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">🪙</div>';
+            if (coinFace) {
+                coinFace.innerHTML = '<div style="font-size: 48px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">🪙</div>';
+            }
         };
+        
+        // Принудительно загружаем изображение
+        coinImage.src = coinImage.src;
     }
 }
 
