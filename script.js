@@ -50,10 +50,7 @@ async function sendTap() {
     }
     window.lastTapTime = now;
 
-    // ╨Р╨╜╨╕╨╝╨░╤Ж╨╕╤П
-    const tapButton = document.getElementById('tapButton');
-    tapButton.classList.add('tapped');
-    setTimeout(() => tapButton.classList.remove('tapped'), 600);
+    // ╨Р╨╜╨╕╨╝╨░╤Ж╨╕╤П ╤Г╨╝╨╡╨╜╤М╤И╨╡╨╜╨╕╤П ╤Г╨╢╨╡ ╨▓ CSS ╤З╨╡╤А╨╡╨╖ :active
 
     // ╨Т╨╕╨▒╤А╨░╤Ж╨╕╤П
     if (tg.HapticFeedback) {
