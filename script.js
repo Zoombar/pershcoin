@@ -172,12 +172,18 @@ function closeModal(modalId) {
 
 // ╨Ч╨░╨│╤А╤Г╨╖╨║╨░ ╤А╨╡╤Д╨╡╤А╨░╨╗╨╛╨▓
 async function loadReferrals() {
+    const list = document.getElementById('referralsList');
+    
+    if (!API_BASE) {
+        list.innerHTML = '<div class="loading">╨Ф╨╡╨╝╨╛ ╤А╨╡╨╢╨╕╨╝: API ╤Б╨╡╤А╨▓╨╡╤А ╨╜╨╡ ╨╜╨░╤Б╤В╤А╨╛╨╡╨╜</div>';
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE}/api/referrals?initData=${encodeURIComponent(state.initData)}`);
         const data = await response.json();
         
         if (data.success) {
-            const list = document.getElementById('referralsList');
             list.innerHTML = '';
             
             if (data.referrals.length === 0) {
@@ -201,6 +207,7 @@ async function loadReferrals() {
         }
     } catch (error) {
         console.error('Error loading referrals:', error);
+        list.innerHTML = '<div class="loading">╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨│╤А╤Г╨╖╨║╨╕ ╤А╨╡╤Д╨╡╤А╨░╨╗╨╛╨▓</div>';
     }
 }
 
