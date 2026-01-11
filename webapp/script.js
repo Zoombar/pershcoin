@@ -18,10 +18,17 @@ let state = {
 // Для продакшена укажите URL вашего сервера
 const API_BASE = window.location.hostname === 'localhost' 
     ? 'http://localhost:8080' 
-    : 'https://your-server.com'; // TODO: Замените на URL вашего API сервера (ngrok или продакшен)
+    : null; // API сервер не настроен - приложение будет работать в режиме демо
 
 // Получение данных пользователя
 async function fetchUserData() {
+    if (!API_BASE) {
+        // Демо режим - используем значения по умолчанию
+        state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        updateUI();
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE}/api/user?initData=${encodeURIComponent(state.initData)}`);
         const data = await response.json();
@@ -36,6 +43,9 @@ async function fetchUserData() {
         }
     } catch (error) {
         console.error('Error fetching user data:', error);
+        // Демо режим при ошибке
+        state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        updateUI();
     }
 }
 
@@ -55,6 +65,15 @@ async function sendTap() {
     // Вибрация
     if (tg.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
+    }
+
+    // Демо режим - работаем локально
+    if (!API_BASE) {
+        state.coins += 1;
+        state.taps += 1;
+        updateUI();
+        showCoinAnimation();
+        return;
     }
 
     try {
@@ -83,7 +102,11 @@ async function sendTap() {
         }
     } catch (error) {
         console.error('Error sending tap:', error);
-        tg.showAlert('Ошибка при отправке тапа');
+        // Демо режим при ошибке
+        state.coins += 1;
+        state.taps += 1;
+        updateUI();
+        showCoinAnimation();
     }
 }
 
@@ -183,12 +206,18 @@ async function loadReferrals() {
 
 // Загрузка лидерборда
 async function loadLeaderboard(type = 'coins') {
+    const list = document.getElementById('leaderboardList');
+    
+    if (!API_BASE) {
+        list.innerHTML = '<div class="loading">Демо режим: API сервер не настроен</div>';
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE}/api/leaderboard?initData=${encodeURIComponent(state.initData)}`);
         const data = await response.json();
         
         if (data.success) {
-            const list = document.getElementById('leaderboardList');
             list.innerHTML = '';
             
             const leaderboard = type === 'coins' ? data.by_coins : data.by_taps;
@@ -210,6 +239,7 @@ async function loadLeaderboard(type = 'coins') {
         }
     } catch (error) {
         console.error('Error loading leaderboard:', error);
+        list.innerHTML = '<div class="loading">Ошибка загрузки лидерборда</div>';
     }
 }
 
