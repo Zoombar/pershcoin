@@ -82,13 +82,30 @@ async def handle_api_user(request: web.Request) -> web.Response:
         return web.json_response({"success": False, "error": "invalid_initData"})
     
     user_id = user_data.get('id')
+    username = user_data.get('username')
+    first_name = user_data.get('first_name')
+    
     if not user_id:
         return web.json_response({"success": False, "error": "user_id not found"})
     
     async with AsyncSessionLocal() as db:
         user = await crud.get_user(db, user_id)
+        
+        # Если пользователь не найден, создаем его
         if not user:
-            return web.json_response({"success": False, "error": "user_not_found"})
+            new_referral_code = crud.generate_referral_code()
+            # Проверяем уникальность кода
+            while await crud.get_user_by_referral_code(db, new_referral_code):
+                new_referral_code = crud.generate_referral_code()
+            
+            user = await crud.create_user(
+                db=db,
+                user_id=user_id,
+                username=username,
+                first_name=first_name,
+                referral_code=new_referral_code,
+                referred_by=None
+            )
         
         referrals = await crud.get_user_referrals(db, user_id)
         total_earned = sum(ref.coins_earned for ref in referrals)

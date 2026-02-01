@@ -1,7 +1,14 @@
 // Telegram Web App API
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+let tg = null;
+try {
+    if (window.Telegram && window.Telegram.WebApp) {
+        tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+    }
+} catch (error) {
+    console.log('Telegram WebApp API not available, running in browser mode');
+}
 
 // Состояние приложения
 let state = {
@@ -10,21 +17,60 @@ let state = {
     referralCode: '',
     referralsCount: 0,
     totalCoinsEarned: 0,
-    initData: tg.initData
+    initData: tg ? tg.initData : ''
 };
 
+// Логируем initData для отладки (только в консоли)
+if (tg && tg.initData) {
+    console.log('Telegram WebApp initData получен');
+} else {
+    console.warn('Telegram WebApp initData не доступен - приложение будет работать в демо режиме');
+}
+
 // API базовый URL
-// Для локальной разработки используйте ngrok: ngrok http 8080
-// Для продакшена укажите URL вашего сервера
-const API_BASE = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8080' 
-    : null; // API сервер не настроен - приложение будет работать в режиме демо
+// Определяем URL API в зависимости от окружения
+let API_BASE = null;
+
+// Настройка API URL
+// Для локальной разработки используйте localhost
+// Для продакшна укажите URL вашего API сервера
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // Локальная разработка
+    API_BASE = 'http://localhost:8080';
+} else {
+    // Продакшн - укажите URL вашего API сервера
+    // Примеры:
+    // API_BASE = 'https://your-api-server.com';
+    // API_BASE = 'https://api.yourdomain.com';
+    // API_BASE = 'https://your-server.com:8080';
+    
+    // ВАЖНО: Замените на URL вашего API сервера!
+    // GitHub Pages может хостить только статические файлы,
+    // поэтому API должен быть на отдельном сервере
+    // 
+    // Бесплатные варианты для API:
+    // - Railway.app: https://railway.app
+    // - Render.com: https://render.com
+    // - Fly.io: https://fly.io
+    // - Replit: https://replit.com
+    //
+    // После настройки API сервера, замените URL ниже:
+    API_BASE = null; // Укажите URL вашего API сервера, например: 'https://your-app.railway.app'
+    
+    // Если API на том же домене (не GitHub Pages), можно использовать:
+    // const protocol = window.location.protocol;
+    // const hostname = window.location.hostname;
+    // API_BASE = `${protocol}//${hostname}:8080`;
+}
 
 // Получение данных пользователя
 async function fetchUserData() {
-    if (!API_BASE) {
+    // Если нет initData, работаем в демо режиме
+    if (!state.initData || !API_BASE) {
         // Демо режим - используем значения по умолчанию
-        state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        if (!state.referralCode) {
+            state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        }
         updateUI();
         return;
     }
@@ -40,12 +86,23 @@ async function fetchUserData() {
             state.referralsCount = data.referrals_count;
             state.totalCoinsEarned = data.total_coins_earned;
             updateUI();
+        } else {
+            console.error('Error from API:', data.error);
+            // Если пользователь не найден, API создаст его автоматически при следующем запросе
+            if (data.error === 'user_not_found') {
+                console.log('Пользователь не найден, будет создан автоматически');
+            }
         }
     } catch (error) {
         console.error('Error fetching user data:', error);
-        // Демо режим при ошибке
-        state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-        updateUI();
+        // Демо режим при ошибке сети
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            console.warn('Сеть недоступна, работаем в демо режиме');
+            if (!state.referralCode) {
+                state.referralCode = 'PERSH' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+            }
+            updateUI();
+        }
     }
 }
 
@@ -60,15 +117,13 @@ async function sendTap() {
     }
     window.lastTapTime = now;
 
-    // Анимация уменьшения уже в CSS через :active
-
     // Вибрация
-    if (tg.HapticFeedback) {
+    if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
     }
 
-    // Демо режим - работаем локально
-    if (!API_BASE) {
+    // Если нет initData, работаем в демо режиме
+    if (!state.initData || !API_BASE) {
         state.coins += 1;
         state.taps += 1;
         updateUI();
@@ -98,18 +153,31 @@ async function sendTap() {
             showCoinAnimation();
         } else if (data.error === 'rate_limit_exceeded') {
             // Показываем сообщение о rate limit
-            tg.showAlert(`Слишком быстро! Подожди ${data.retry_after.toFixed(1)} сек`);
+            if (tg && tg.showAlert) {
+                tg.showAlert(`Слишком быстро! Подожди ${data.retry_after.toFixed(1)} сек`);
+            }
+        } else {
+            console.error('Error from API:', data.error);
+            if (tg && tg.showAlert) {
+                tg.showAlert(`Ошибка: ${data.error}`);
+            }
         }
     } catch (error) {
         console.error('Error sending tap:', error);
-        // Демо режим при ошибке
-        state.coins += 1;
-        state.taps += 1;
-        updateUI();
-        showCoinAnimation();
+        // Демо режим при ошибке сети
+        if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+            console.warn('Сеть недоступна, работаем в демо режиме');
+            state.coins += 1;
+            state.taps += 1;
+            updateUI();
+            showCoinAnimation();
+        } else {
+            if (tg && tg.showAlert) {
+                tg.showAlert('Ошибка соединения с сервером');
+            }
+        }
     }
 }
-
 
 // Обновление UI
 function updateUI() {
@@ -162,17 +230,22 @@ function showCoinAnimation() {
 // Модальные окна
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
-    modal.classList.add('show');
+    if (modal) {
+        modal.classList.add('show');
+    }
 }
 
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
-    modal.classList.remove('show');
+    if (modal) {
+        modal.classList.remove('show');
+    }
 }
 
 // Загрузка рефералов
 async function loadReferrals() {
     const list = document.getElementById('referralsList');
+    if (!list) return;
     
     if (!API_BASE) {
         list.innerHTML = '<div class="loading">Демо режим: API сервер не настроен</div>';
@@ -214,6 +287,7 @@ async function loadReferrals() {
 // Загрузка лидерборда
 async function loadLeaderboard(type = 'coins') {
     const list = document.getElementById('leaderboardList');
+    if (!list) return;
     
     if (!API_BASE) {
         list.innerHTML = '<div class="loading">Демо режим: API сервер не настроен</div>';
@@ -253,13 +327,17 @@ async function loadLeaderboard(type = 'coins') {
 // Копирование реферального кода
 function copyReferralCode() {
     const code = state.referralCode;
-    const botUsername = tg.initDataUnsafe?.user?.username || 'your_bot';
+    const botUsername = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : 'your_bot';
     const link = `https://t.me/${botUsername}?start=${code}`;
     
     // Копирование в буфер обмена
     if (navigator.clipboard) {
         navigator.clipboard.writeText(link).then(() => {
-            tg.showAlert('Ссылка скопирована!');
+            if (tg && tg.showAlert) {
+                tg.showAlert('Ссылка скопирована!');
+            } else {
+                alert('Ссылка скопирована!');
+            }
         });
     } else {
         // Fallback для старых браузеров
@@ -269,21 +347,18 @@ function copyReferralCode() {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        tg.showAlert('Ссылка скопирована!');
+        if (tg && tg.showAlert) {
+            tg.showAlert('Ссылка скопирована!');
+        } else {
+            alert('Ссылка скопирована!');
+        }
     }
 }
 
-// Загрузка изображения монеты (статическое изображение)
-function loadCoinImage() {
+// Обработка ошибки загрузки изображения монеты
+function setupCoinImageErrorHandler() {
     const coinImage = document.getElementById('coinImage');
     if (coinImage) {
-        // Проверяем, загрузилось ли изображение
-        if (coinImage.complete && coinImage.naturalHeight !== 0) {
-            // Изображение уже загружено
-            return;
-        }
-        
-        // Если изображение не загрузилось, показываем заглушку
         coinImage.onerror = () => {
             console.error('Failed to load coin image');
             coinImage.style.display = 'none';
@@ -292,53 +367,102 @@ function loadCoinImage() {
                 tapButton.innerHTML = '<div style="font-size: 48px; display: flex; align-items: center; justify-content: center; width: 250px; height: 250px; border-radius: 50%;">🪙</div>';
             }
         };
-        
-        // Принудительно загружаем изображение
-        coinImage.src = coinImage.src;
     }
+}
+
+// Инициализация темы
+function initTheme() {
+    const savedTheme = localStorage.getItem('pershcoin_theme') || 'light';
+    applyTheme(savedTheme);
+}
+
+// Применение темы
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    localStorage.setItem('pershcoin_theme', theme);
+}
+
+// Переключение темы
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
 }
 
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
-    // Загружаем изображение монеты
-    loadCoinImage();
+    // Инициализация темы
+    initTheme();
+    
+    // Переключатель темы
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+    
+    // Настраиваем обработчик ошибок для изображения монеты
+    setupCoinImageErrorHandler();
     
     // Кнопка тапа
     const tapButton = document.getElementById('tapButton');
-    tapButton.addEventListener('click', sendTap);
+    if (tapButton) {
+        tapButton.addEventListener('click', sendTap);
+    }
     
     // Кнопки действий
-    document.getElementById('referralsBtn').addEventListener('click', () => {
-        openModal('referralsModal');
-        loadReferrals();
-    });
+    const referralsBtn = document.getElementById('referralsBtn');
+    if (referralsBtn) {
+        referralsBtn.addEventListener('click', () => {
+            openModal('referralsModal');
+            loadReferrals();
+        });
+    }
     
-    document.getElementById('leaderboardBtn').addEventListener('click', () => {
-        openModal('leaderboardModal');
-        loadLeaderboard('coins');
-    });
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    if (leaderboardBtn) {
+        leaderboardBtn.addEventListener('click', () => {
+            openModal('leaderboardModal');
+            loadLeaderboard('coins');
+        });
+    }
     
     // Закрытие модальных окон
-    document.getElementById('closeReferrals').addEventListener('click', () => {
-        closeModal('referralsModal');
-    });
+    const closeReferrals = document.getElementById('closeReferrals');
+    if (closeReferrals) {
+        closeReferrals.addEventListener('click', () => {
+            closeModal('referralsModal');
+        });
+    }
     
-    document.getElementById('closeLeaderboard').addEventListener('click', () => {
-        closeModal('leaderboardModal');
-    });
+    const closeLeaderboard = document.getElementById('closeLeaderboard');
+    if (closeLeaderboard) {
+        closeLeaderboard.addEventListener('click', () => {
+            closeModal('leaderboardModal');
+        });
+    }
     
     // Закрытие при клике вне модального окна
-    document.getElementById('referralsModal').addEventListener('click', (e) => {
-        if (e.target.id === 'referralsModal') {
-            closeModal('referralsModal');
-        }
-    });
+    const referralsModal = document.getElementById('referralsModal');
+    if (referralsModal) {
+        referralsModal.addEventListener('click', (e) => {
+            if (e.target.id === 'referralsModal') {
+                closeModal('referralsModal');
+            }
+        });
+    }
     
-    document.getElementById('leaderboardModal').addEventListener('click', (e) => {
-        if (e.target.id === 'leaderboardModal') {
-            closeModal('leaderboardModal');
-        }
-    });
+    const leaderboardModal = document.getElementById('leaderboardModal');
+    if (leaderboardModal) {
+        leaderboardModal.addEventListener('click', (e) => {
+            if (e.target.id === 'leaderboardModal') {
+                closeModal('leaderboardModal');
+            }
+        });
+    }
     
     // Табы лидерборда
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -351,7 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Копирование реферального кода
-    document.getElementById('copyReferralCode').addEventListener('click', copyReferralCode);
+    const copyReferralCodeBtn = document.getElementById('copyReferralCode');
+    if (copyReferralCodeBtn) {
+        copyReferralCodeBtn.addEventListener('click', copyReferralCode);
+    }
     
     // Загрузка данных пользователя
     fetchUserData();
